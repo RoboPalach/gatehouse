@@ -1,35 +1,11 @@
-#include <Arduino.h>
-#include <LiquidCrystal_I2C.h>
-#include <SPI.h>
-#include <MFRC522.h>
-#include <EEPROM.h>
-
-#define SS_PIN 10
-#define RST_PIN 9
-#define RELAY 7
-#define BUTTON_PIN 5
-
-LiquidCrystal_I2C lcd(0x27,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
-MFRC522 rfid(SS_PIN, RST_PIN);
-
-typedef uint8_t user_t[4];
-
-user_t master;
-user_t *bois;
-int n_users = 0;
-
-enum CardType {
-    Unauthorized,
-    Boi,
-    Master
-};
-
+// Load user from specified place in EEPROM
 void loadUser(char index) {
     for (int i = 0; i < 4; i++) {
         bois[index][i] = EEPROM.read(5 + (4 * index) + i);
     }
 }
 
+// Load all users from EEPROM
 void loadUsers() {
     n_users = EEPROM.read(0);
 
@@ -43,6 +19,7 @@ void loadUsers() {
         loadUser(i);
     }
 }
+
 
 // Check the type of the card
 CardType checkCard() {
@@ -62,6 +39,14 @@ CardType checkCard() {
     }
     
     return Unauthorized;
+}
+
+
+// Open Sesame!
+void openDoor() {
+    digitalWrite(RELAY, LOW);
+    delay(3000);
+    digitalWrite(RELAY, HIGH);
 }
 
 // Senpai uwu
@@ -150,75 +135,4 @@ void masterMode() {
         lcd.clear();
         lcd.print("EPIC MASTER MODE");
     }
-}
-
-// Open Sesame!
-void openDoor() {
-    digitalWrite(RELAY, LOW);
-    delay(3000);
-    digitalWrite(RELAY, HIGH);
-}
-
-
-void setup(){
-    Serial.begin(115200);
-    
-    SPI.begin();
-    rfid.PCD_Init();
-    rfid.PCD_SetAntennaGain(rfid.RxGain_max);
-
-    lcd.init();
-    lcd.backlight();
-
-    lcd.print("Hello world...");
-    lcd.setCursor(0, 1);
-}
-
-void loop(){
-    if (digitalRead(BUTTON_PIN) == LOW) {
-        openDoor();
-        return;
-    }
-
-    // Is new card present?
-    if (!rfid.PICC_IsNewCardPresent()){ 
-        lcd.setCursor(0,1);
-        lcd.println("New card");
-        return;
-        }
-
-    // Is there a card?
-    if (!rfid.PICC_ReadCardSerial()){ 
-        lcd.setCursor(0,1);
-        lcd.println("New card");
-        return;
-        }
-
-    // Get info about the card
-    CardType cardType = checkCard();
-
-    // If master, enter master mode
-    if (cardType == Master) {
-        masterMode();
-
-    // If known, open door
-    } else if (cardType == Boi) {
-        Serial.println("i know the taste of this one uwu");
-        lcd.clear();
-        lcd.print(" WELCOME HUMAN!");
-        openDoor();
-
-    // Not known, begone thot!
-    } else {
-        Serial.println("Impossible. Perhaps the archives are incomplete?");
-        lcd.clear();
-        lcd.print("     OPENED");
-        lcd.setCursor(0, 1);
-        lcd.print(" jk go away lol");
-        lcd.home();
-        delay(3000);
-    }
-
-    lcd.clear();
-    lcd.print("Welcome");
 }
