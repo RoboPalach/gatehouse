@@ -9,7 +9,7 @@
 #define RELAY 7
 #define BUTTON_PIN 5
 
-LiquidCrystal_I2C lcd(0x27,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+LiquidCrystal_I2C lcd(0x27,20,4);  // set the lcd address to 0x27 for a 16 chars and 2 line display
 MFRC522 rfid(SS_PIN, RST_PIN);
 
 typedef uint8_t user_t[4];
@@ -172,9 +172,11 @@ void setup(){
 
     lcd.print("Hello world...");
     lcd.setCursor(0, 1);
+    Serial.println("oh this is running");
 }
 
 void loop(){
+    Serial.println("loopin");
     if (digitalRead(BUTTON_PIN) == LOW) {
         openDoor();
         return;
@@ -185,17 +187,31 @@ void loop(){
         lcd.setCursor(0,1);
         lcd.println("New card");
         return;
-        }
+    }
 
     // Is there a card?
     if (!rfid.PICC_ReadCardSerial()){ 
         lcd.setCursor(0,1);
         lcd.println("New card");
         return;
-        }
+    }
 
     // Get info about the card
     CardType cardType = checkCard();
+
+    // this is fucking awful
+    Serial.print("new card: ");
+    Serial.print(rfid.uid.uidByte[0]);
+    Serial.print(" ");
+    Serial.print(rfid.uid.uidByte[1]);
+    Serial.print(" ");
+    Serial.print(rfid.uid.uidByte[2]);
+    Serial.print(" ");
+    Serial.print(rfid.uid.uidByte[3]);
+    Serial.print(" ");
+    Serial.print(" - ");
+    Serial.println(cardType);
+
 
     // If master, enter master mode
     if (cardType == Master) {
